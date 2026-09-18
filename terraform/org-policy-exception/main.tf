@@ -30,7 +30,7 @@
 
 locals {
   # The namespaced tag key name org-policy conditions reference, e.g.
-  # "123456789012/bobbin" — matches Google's own documented shape for
+  # "123456789012/nodrik" — matches Google's own documented shape for
   # resource.matchTag()'s first argument (the tag key's OWN parent
   # organisation id, independent of var.parent — see variables.tf).
   tag_key_namespaced = "${var.organization_id}/${var.tag_key_short_name}"
@@ -48,16 +48,16 @@ locals {
 # tags") creates the tag key at the organisation regardless of which
 # level the policy itself applies at. See variables.tf's organization_id
 # for the reasoning in full.
-resource "google_tags_tag_key" "bobbin" {
+resource "google_tags_tag_key" "nodrik" {
   parent      = "organizations/${var.organization_id}"
   short_name  = var.tag_key_short_name
-  description = "Marks a project as exempted from domain-restricted sharing for Bobbin's tenant service account. Managed by the bobbin-onboarding Terraform module (terraform/org-policy-exception)."
+  description = "Marks a project as exempted from domain-restricted sharing for Nodrik's tenant service account. Managed by the nodrik-onboarding Terraform module (terraform/org-policy-exception)."
 }
 
 resource "google_tags_tag_value" "allowed" {
-  parent      = google_tags_tag_key.bobbin.id
+  parent      = google_tags_tag_key.nodrik.id
   short_name  = var.tag_value_short_name
-  description = "Bound to the one project connecting Bobbin. Removing this binding removes the exception for that project without touching the policy rule itself."
+  description = "Bound to the one project connecting Nodrik. Removing this binding removes the exception for that project without touching the policy rule itself."
 }
 
 # Read-only; needed to bind the tag by resource name, which the Tag
@@ -111,9 +111,9 @@ resource "google_tags_tag_binding" "project" {
 # nothing to attach to and would be silently ignored by the API.
 #
 # WHAT `allow_all = true` ACTUALLY MEANS: on the tagged resource, ANY
-# principal can be granted a role there — not only Bobbin's tenant
+# principal can be granted a role there — not only Nodrik's tenant
 # service account. The tag is what scopes this exception, not a
-# principal allowlist (unlike Route 2, which names Bobbin's customer id
+# principal allowlist (unlike Route 2, which names Nodrik's customer id
 # specifically and applies it organisation-wide). Bind the tag only to
 # the one project you mean to expose this way, and do not reuse
 # var.tag_key_short_name/var.tag_value_short_name for anything else.

@@ -5,7 +5,7 @@ output "notification_channel_ids" {
     alert policies you want investigated.
   EOT
   value = {
-    for project_id, channel in google_monitoring_notification_channel.bobbin :
+    for project_id, channel in google_monitoring_notification_channel.nodrik :
     project_id => channel.name
   }
 }
@@ -19,7 +19,7 @@ output "granted_roles" {
   EOT
   value = concat(
     local.roles,
-    sort([for binding in google_project_iam_member.bobbin_family : binding.role]),
+    sort([for binding in google_project_iam_member.nodrik_family : binding.role]),
   )
 }
 
@@ -30,14 +30,14 @@ output "family_roles" {
     var.families is empty. For your own verification.
   EOT
   value = {
-    for key, role in google_project_iam_custom_role.bobbin :
+    for key, role in google_project_iam_custom_role.nodrik :
     key => { name = role.name, permissions = role.permissions }
   }
 }
 
 output "project_numbers" {
   description = <<-EOT
-    Project number per project id. Send these to Bobbin — alerts cannot
+    Project number per project id. Send these to Nodrik — alerts cannot
     reach the tenant topic until we grant your projects' Cloud Monitoring
     service agent publish rights on it, which is the one step this
     module cannot do on your behalf (see main.tf).

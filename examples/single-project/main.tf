@@ -1,8 +1,8 @@
-# Minimal usage of the Bobbin onboarding module against one project.
+# Minimal usage of the Nodrik onboarding module against one project.
 #
 # This is a root module: it is the one place a provider block belongs.
 # Run `terraform init && terraform plan` here against your own project
-# to see exactly what Bobbin would be granted before applying anything.
+# to see exactly what Nodrik would be granted before applying anything.
 
 terraform {
   required_version = ">= 1.5"
@@ -19,7 +19,7 @@ provider "google" {
   project = var.project_id
 }
 
-module "bobbin" {
+module "nodrik" {
   source = "../../terraform"
 
   tenant_service_account = var.tenant_service_account

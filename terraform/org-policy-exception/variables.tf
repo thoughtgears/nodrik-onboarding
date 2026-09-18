@@ -21,7 +21,7 @@ variable "parent" {
     varies by level" section), because only the organisation node has no
     parent to inherit an existing restriction FROM.
 
-    See the README's "Choosing a level" section for why Bobbin
+    See the README's "Choosing a level" section for why Nodrik
     recommends project or folder over organisation: either asks whoever
     applies this for `orgpolicy.policy.set` on ONE node rather than the
     whole organisation, and a mistake here can only reach resources
@@ -78,7 +78,7 @@ variable "organization_id" {
 
 variable "project_id" {
   description = <<-EOT
-    The one GCP project being connected to Bobbin — the resource that
+    The one GCP project being connected to Nodrik — the resource that
     gets tagged, and therefore the resource the exception's conditional
     rule actually exempts. Independent of var.parent: parent says WHERE
     the policy object lives; project_id says WHICH resource carries the
@@ -140,11 +140,11 @@ variable "existing_allowed_values" {
 variable "tag_key_short_name" {
   description = <<-EOT
     Short name for the organisation-level tag key this module creates.
-    The default is deliberately plain — change it only if "bobbin"
+    The default is deliberately plain — change it only if "nodrik"
     already names something else in your tag namespace.
   EOT
   type        = string
-  default     = "bobbin"
+  default     = "nodrik"
 }
 
 variable "tag_value_short_name" {

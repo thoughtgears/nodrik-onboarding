@@ -4,22 +4,22 @@
 
 variable "tenant_service_account" {
   description = <<-EOT
-    The service account Bobbin gave you during onboarding, e.g.
-    tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com. This is the
+    The service account Nodrik gave you during onboarding, e.g.
+    tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com. This is the
     ONLY principal these resources ever grant anything to.
   EOT
   type        = string
 
   validation {
     condition     = can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.iam\\.gserviceaccount\\.com$", var.tenant_service_account))
-    error_message = "tenant_service_account must look like a service account, e.g. tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com."
+    error_message = "tenant_service_account must look like a service account, e.g. tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com."
   }
 }
 
 variable "tenant_topic" {
   description = <<-EOT
-    Your alert intake topic, as the full resource path Bobbin gave you,
-    e.g. projects/bobbin-hub-N/topics/tenant-acme-prod-alerts. Only the
+    Your alert intake topic, as the full resource path Nodrik gave you,
+    e.g. projects/tg-hub-N/topics/tenant-acme-prod-alerts. Only the
     notification channel's label points at this — nothing in this module
     grants access to the topic itself, on either side.
   EOT
@@ -27,15 +27,15 @@ variable "tenant_topic" {
 
   validation {
     condition     = can(regex("^projects/[^/]+/topics/[^/]+$", var.tenant_topic))
-    error_message = "tenant_topic must be a full path (projects/PROJECT/topics/TOPIC), e.g. projects/bobbin-hub-N/topics/tenant-acme-prod-alerts."
+    error_message = "tenant_topic must be a full path (projects/PROJECT/topics/TOPIC), e.g. projects/tg-hub-N/topics/tenant-acme-prod-alerts."
   }
 }
 
 variable "project_ids" {
   description = <<-EOT
-    The GCP projects Bobbin should be able to investigate. One set of
+    The GCP projects Nodrik should be able to investigate. One set of
     grants (the four roles) and one notification channel are created per
-    project — the same shape as running grant-bobbin-access.sh once per
+    project — the same shape as running grant-nodrik-access.sh once per
     project id.
   EOT
   type        = set(string)
@@ -65,7 +65,7 @@ variable "product_name" {
     description this module creates in your project.
   EOT
   type        = string
-  default     = "Bobbin"
+  default     = "Nodrik"
 
   validation {
     condition     = length(trimspace(var.product_name)) > 0
@@ -76,13 +76,13 @@ variable "product_name" {
 variable "product_slug" {
   description = <<-EOT
     Identifier form of the product name. Prefixes the custom role ids
-    ("bobbin" gives bobbinManagedSqlConfigViewer) and names the
+    ("nodrik" gives nodrikManagedSqlConfigViewer) and names the
     onboarding repository cited in each role's description. Lower-case
     letters and digits only: a custom role id must be a valid
     identifier, and cannot be changed once the role exists.
   EOT
   type        = string
-  default     = "bobbin"
+  default     = "nodrik"
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9]{1,20}$", var.product_slug))
@@ -96,7 +96,7 @@ variable "product_url" {
     now can read what they are. Appears in every role description.
   EOT
   type        = string
-  default     = "https://getbobbin.dev"
+  default     = "https://nodrik.dev"
 }
 
 variable "agent_name" {
@@ -105,7 +105,7 @@ variable "agent_name" {
     channel name; set channel_display_name directly to override.
   EOT
   type        = string
-  default     = "bobby"
+  default     = "nodrik"
 }
 
 variable "channel_display_name" {
@@ -122,17 +122,17 @@ variable "channel_display_name" {
 
 variable "families" {
   description = <<-EOT
-    Optional. The services whose SETTINGS Bobbin may read as well as
+    Optional. The services whose SETTINGS Nodrik may read as well as
     their telemetry — one custom, read-only role per family, defined in
     each project and bound to tenant_service_account. Empty (the default)
     applies exactly the four roles above and nothing else. Each family
     maps to one role holding exactly the get/list permissions the
     product's tool calls (see local.family_roles in main.tf):
-      managed-sql -> bobbinManagedSqlConfigViewer  (Cloud SQL settings and flags)
-      cache       -> bobbinCacheConfigViewer       (Memorystore settings)
-      kubernetes  -> bobbinKubernetesConfigViewer  (GKE cluster settings from the GKE API — never the cluster)
-      compute     -> bobbinComputeConfigViewer     (Compute Engine instance and group settings)
-      networking  -> bobbinNetworkingConfigViewer  (load balancer backend health and configuration)
+      managed-sql -> nodrikManagedSqlConfigViewer  (Cloud SQL settings and flags)
+      cache       -> nodrikCacheConfigViewer       (Memorystore settings)
+      kubernetes  -> nodrikKubernetesConfigViewer  (GKE cluster settings from the GKE API — never the cluster)
+      compute     -> nodrikComputeConfigViewer     (Compute Engine instance and group settings)
+      networking  -> nodrikNetworkingConfigViewer  (load balancer backend health and configuration)
     Defining a role needs iam.roles.create on the project.
   EOT
   type        = set(string)

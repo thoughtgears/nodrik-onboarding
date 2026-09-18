@@ -1,14 +1,14 @@
 # Applies exactly the grants in ../docs/granting-access.md and
-# ../grant-bobbin-access.sh — no more. Read those first; this module is
+# ../grant-nodrik-access.sh — no more. Read those first; this module is
 # the third rendering of the same steps (ADR-0003 in the product repo),
-# not a different decision about what Bobbin gets. `var.families` is the
+# not a different decision about what Nodrik gets. `var.families` is the
 # script's `--family`: optional, empty by default, one more read-only
 # custom role per service you name (ADR-0055 in the product repo).
 #
 # What this module does NOT do, deliberately:
 #   - it never touches the tenant topic's IAM policy. Granting the
 #     customer's Cloud Monitoring service agent publish rights on that
-#     topic happens on Bobbin's side, against Bobbin's own hub project,
+#     topic happens on Nodrik's side, against Nodrik's own hub project,
 #     once you send us the project number (see the "project_numbers"
 #     output) — a customer's Terraform run has no access to grant that
 #     even if it tried.
@@ -18,7 +18,7 @@
 
 locals {
   # The complete access list. Four Google-managed, read-only roles —
-  # matching grant-bobbin-access.sh's ROLES array precisely.
+  # matching grant-nodrik-access.sh's ROLES array precisely.
   roles = [
     "roles/logging.viewer",
     "roles/monitoring.viewer",
@@ -36,7 +36,7 @@ locals {
     }
   }
 
-  # The OPTIONAL family roles — the same table as grant-bobbin-access.sh's
+  # The OPTIONAL family roles — the same table as grant-nodrik-access.sh's
   # family_permissions and FAMILY_GRANTS in the product repo
   # (packages/control/src/grants.ts), which the product's pre-flight and
   # verifier check against. Every permission is a get or a list; that is
@@ -109,7 +109,7 @@ locals {
 # same shape as `gcloud projects add-iam-policy-binding`. This never
 # removes another principal already holding one of these four roles,
 # which an authoritative `google_project_iam_binding` would.
-resource "google_project_iam_member" "bobbin_viewer" {
+resource "google_project_iam_member" "nodrik_viewer" {
   for_each = local.project_role_bindings
 
   project = each.value.project_id
@@ -125,7 +125,7 @@ resource "google_project_iam_member" "bobbin_viewer" {
 # plan orders them. `terraform destroy` removes both — the module is the
 # exact reverse of itself, and a role definition is the one artefact of
 # ours a grant would otherwise leave in the project.
-resource "google_project_iam_custom_role" "bobbin" {
+resource "google_project_iam_custom_role" "nodrik" {
   for_each = local.project_family_roles
 
   project     = each.value.project_id
@@ -136,11 +136,11 @@ resource "google_project_iam_custom_role" "bobbin" {
   stage       = "GA"
 }
 
-resource "google_project_iam_member" "bobbin_family" {
+resource "google_project_iam_member" "nodrik_family" {
   for_each = local.project_family_roles
 
   project = each.value.project_id
-  role    = google_project_iam_custom_role.bobbin[each.key].name
+  role    = google_project_iam_custom_role.nodrik[each.key].name
   member  = "serviceAccount:${var.tenant_service_account}"
 }
 
@@ -149,7 +149,7 @@ resource "google_project_iam_member" "bobbin_family" {
 # the equivalent of the script's "does one already exist" check — a
 # second `apply` updates this resource in place rather than creating a
 # second channel, so there is nothing extra to guard here.
-resource "google_monitoring_notification_channel" "bobbin" {
+resource "google_monitoring_notification_channel" "nodrik" {
   for_each = var.project_ids
 
   project      = each.value
@@ -160,7 +160,7 @@ resource "google_monitoring_notification_channel" "bobbin" {
     topic = var.tenant_topic
   }
 
-  # revoke-bobbin-access.sh always deletes with --force: a channel
+  # revoke-nodrik-access.sh always deletes with --force: a channel
   # cannot be deleted while an alert policy still references it, and the
   # policies referencing it are the customer's own — left alone, only
   # unlinked. `terraform destroy` needs the same permission to be the

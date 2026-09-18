@@ -1,10 +1,10 @@
 # Terraform module
 
-The Terraform-native way to apply Bobbin's access grants — the same
+The Terraform-native way to apply Nodrik's access grants — the same
 grants as [`../docs/granting-access.md`](../docs/granting-access.md) and
-[`../grant-bobbin-access.sh`](../grant-bobbin-access.sh), no more.
+[`../grant-nodrik-access.sh`](../grant-nodrik-access.sh), no more.
 Read the doc first: it is the spec, and this module is a mechanical
-rendering of it, not a separate decision about what Bobbin gets.
+rendering of it, not a separate decision about what Nodrik gets.
 
 ## What it applies
 
@@ -22,21 +22,21 @@ On every project you list, this module:
 | `roles/run.viewer` | Cloud Run service and revision configuration, environment-variable values included |
 
 `run.viewer` returns the full revision spec, environment-variable values
-included; Bobbin keeps the names and discards the values, but the
+included; Nodrik keeps the names and discards the values, but the
 permission allows reading them — see
 [the doc](../docs/granting-access.md#1-grant-the-four-read-only-roles).
 
 Optionally, per family you list in `families`, one more read-only
 **custom** role is defined in the project and bound — see
 [Optional: a configuration role per service](../docs/granting-access.md#optional-a-configuration-role-per-service)
-for what each reads, what the permission itself allows, and what Bobbin's
+for what each reads, what the permission itself allows, and what Nodrik's
 tool discards. `terraform destroy` removes the definition with the
 binding.
 
 That is the complete list — this module never requests, and never
 grants, anything beyond it. It also never touches the tenant topic's own
 IAM policy: granting your projects' Cloud Monitoring service agent
-publish rights on that topic happens on Bobbin's side, against our hub
+publish rights on that topic happens on Nodrik's side, against our hub
 project, once you send us the `project_numbers` output below. A
 customer's Terraform run has no access to grant that even if this module
 tried to.
@@ -44,19 +44,19 @@ tried to.
 ## Usage
 
 ```hcl
-module "bobbin" {
-  source = "github.com/thoughtgears/bobbin-onboarding//terraform?ref=v0.2.1"
+module "nodrik" {
+  source = "github.com/thoughtgears/nodrik-onboarding//terraform?ref=v0.2.1"
 
-  tenant_service_account = "tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com"
-  tenant_topic           = "projects/bobbin-hub-N/topics/tenant-acme-prod-alerts"
+  tenant_service_account = "tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com"
+  tenant_topic           = "projects/tg-hub-N/topics/tenant-acme-prod-alerts"
   project_ids            = ["my-production-project"]
 
   # Optional — omit for the four roles and nothing else.
   families = ["managed-sql"]
 }
 
-output "bobbin_project_numbers" {
-  value = module.bobbin.project_numbers
+output "nodrik_project_numbers" {
+  value = module.nodrik.project_numbers
 }
 ```
 
@@ -75,10 +75,10 @@ A working, minimal root module is in
 
 | Name | Type | Required | Description |
 | --- | --- | --- | --- |
-| `tenant_service_account` | `string` | yes | The service account Bobbin gave you, e.g. `tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com`. The only principal these resources ever grant anything to. Validated against that shape. |
-| `tenant_topic` | `string` | yes | Your alert intake topic as a full resource path, e.g. `projects/bobbin-hub-N/topics/tenant-acme-prod-alerts`. Validated against that shape. |
-| `project_ids` | `set(string)` | yes | The GCP projects Bobbin should investigate. One set of grants and one notification channel are created per project. |
-| `channel_display_name` | `string` | no | Notification channel display name. Defaults to `"Bobbin (@bobby)"`, matching the doc and the script. |
+| `tenant_service_account` | `string` | yes | The service account Nodrik gave you, e.g. `tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com`. The only principal these resources ever grant anything to. Validated against that shape. |
+| `tenant_topic` | `string` | yes | Your alert intake topic as a full resource path, e.g. `projects/tg-hub-N/topics/tenant-acme-prod-alerts`. Validated against that shape. |
+| `project_ids` | `set(string)` | yes | The GCP projects Nodrik should investigate. One set of grants and one notification channel are created per project. |
+| `channel_display_name` | `string` | no | Notification channel display name. Defaults to `"Nodrik (@nodrik)"`, matching the doc and the script. |
 | `families` | `set(string)` | no | Optional configuration roles, one per service: a subset of `managed-sql`, `cache`, `kubernetes`, `compute`, `networking`. Default `[]` — exactly the four roles above. Defining a role needs `iam.roles.create` on the project. |
 
 ## Outputs
@@ -88,7 +88,7 @@ A working, minimal root module is in
 | `notification_channel_ids` | Map of `project_id => notification channel resource name` (`projects/<id>/notificationChannels/<n>`). Attach these to the alert policies you want investigated. |
 | `granted_roles` | Every role granted — the four, plus one custom role per project and family. The complete access list, to check for yourself. |
 | `family_roles` | The custom roles this module defined, per project and family, with their permissions. Empty when `families` is. |
-| `project_numbers` | Map of `project_id => project number`. Send these to Bobbin: see "What it applies" above. |
+| `project_numbers` | Map of `project_id => project number`. Send these to Nodrik: see "What it applies" above. |
 
 ## The known gotcha: domain-restricted sharing
 
@@ -118,7 +118,7 @@ same reason the script does not: reading it needs the Org Policy API
 enabled, and the customer most likely to hit this — one project, no org
 access — is also the one least able to enable it safely.
 
-## Removing Bobbin
+## Removing Nodrik
 
 ```bash
 terraform destroy
@@ -128,24 +128,24 @@ The exact reverse of `apply`: it removes the four role bindings, any
 family role binding and its role definition, and deletes the
 notification channel. The channel resource is configured
 with `force_delete = true` for the same reason
-`revoke-bobbin-access.sh` always deletes with `--force`: Cloud Monitoring
+`revoke-nodrik-access.sh` always deletes with `--force`: Cloud Monitoring
 refuses to delete a channel still referenced by an alert policy, and the
 policies referencing it are the customer's own. `force_delete` deletes
 the channel and unlinks it from those policies; the policies survive and
 keep firing, just with one fewer notification target — which is what
-removing Bobbin means. Your alert policies themselves are never touched.
+removing Nodrik means. Your alert policies themselves are never touched.
 
 You do not have to run this for your data to be deleted. Our side of the
 teardown — the service account that could read your projects, your
 stored credentials, your investigation history — runs on our schedule
 and does not wait for you. `terraform destroy` removes the permissions
 you granted; ours removes the identity they were granted to. Either
-alone stops Bobbin reading anything.
+alone stops Nodrik reading anything.
 
 ## Registry
 
 This module is not published to the Terraform Registry. Registry listing
-needs a repo named `terraform-google-bobbin-onboarding`; the decision as
+needs a repo named `terraform-google-nodrik-onboarding`; the decision as
 of this module's first version is one public repo holding all three
 onboarding paths (doc, script, module), sourced from GitHub as shown
 above. Registry publication is deferred, not ruled out — extracting this

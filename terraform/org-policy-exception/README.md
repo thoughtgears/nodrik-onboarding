@@ -3,7 +3,7 @@
 **This module edits an org policy object, not a project's IAM policy —
 at a level you choose.** It sets a tag-scoped exception to
 `constraints/iam.allowedPolicyMemberDomains` (domain-restricted sharing)
-so Bobbin's tenant service account — which lives in our project, not
+so Nodrik's tenant service account — which lives in our project, not
 yours — can be granted the four viewer roles on the one project you
 name, without weakening the restriction anywhere else your policy
 already covers. It needs `roles/orgpolicy.policyAdmin` (Google's
@@ -49,7 +49,7 @@ at any level, and the failure modes described elsewhere in this README
 are reasoned from Google's documentation, not observed. "Documented" and
 "tested by us" are not the same claim, and this README does not make the
 second one anywhere.
-[Route 2](../../docs/domain-restricted-sharing.md#route-2-add-bobbin-to-the-allowlist-simpler-org-wide)
+[Route 2](../../docs/domain-restricted-sharing.md#route-2-add-nodrik-to-the-allowlist-simpler-org-wide)
 — the allowlist — is one policy value, not four resources, and simpler
 to unwind by hand if something about your organisation's existing
 policy does not match what this module assumes.
@@ -57,7 +57,7 @@ policy does not match what this module assumes.
 ## What it applies
 
 1. an org-level tag key (`organizations/<organization_id>/<tag_key_short_name>`,
-   default short name `bobbin`) — always at the organisation, regardless
+   default short name `nodrik`) — always at the organisation, regardless
    of `var.parent`; see `organization_id`'s description in `variables.tf`
    for why
 2. one tag value under it (default short name `allowed`)
@@ -87,7 +87,7 @@ one node you name — not the whole organisation — and a mistake in the
 policy this module writes can only reach resources under that node,
 never anything outside it. In practice that usually means
 `var.parent = "projects/${var.project_id}"`: the same project you are
-already naming as the one being tagged and connected to Bobbin, so the
+already naming as the one being tagged and connected to Nodrik, so the
 person approving this needs no organisation-wide access at all to do so.
 
 Organisation is the escape hatch for an organisation that centralises
@@ -143,9 +143,9 @@ preconditions in `main.tf` enforce this both ways — `plan` fails rather
 than let either mistake through.
 
 **What `allow_all = true` actually means:** on the tagged resource, *any*
-principal can be granted a role there — not only Bobbin's tenant service
+principal can be granted a role there — not only Nodrik's tenant service
 account. The tag is what scopes this exception, not a principal
-allowlist (unlike Route 2, which names Bobbin's Cloud Identity customer
+allowlist (unlike Route 2, which names Nodrik's Cloud Identity customer
 id specifically and applies it organisation-wide — see
 [`../../docs/domain-restricted-sharing.md`](../../docs/domain-restricted-sharing.md)).
 Bind the tag only to the one project you mean to expose this way, and do
@@ -176,7 +176,7 @@ your organisation's current allowlist before it can write a new one
 that includes it.** That is `var.existing_allowed_values`, and it has no
 default on purpose — a default would either invent a value (wrong) or
 start empty (which would replace your policy with one that allows
-nothing but Bobbin, on the tagged project, and nothing at all
+nothing but Nodrik, on the tagged project, and nothing at all
 everywhere else — the opposite of "narrow exception"). Read your current
 value first:
 
@@ -226,8 +226,8 @@ The recommended, narrower form — the policy applied at the one project
 being connected:
 
 ```hcl
-module "bobbin_org_policy_exception" {
-  source = "github.com/thoughtgears/bobbin-onboarding//terraform/org-policy-exception?ref=v0.3.0"
+module "nodrik_org_policy_exception" {
+  source = "github.com/thoughtgears/nodrik-onboarding//terraform/org-policy-exception?ref=v0.3.0"
 
   parent          = "projects/my-production-project"
   organization_id = "123456789012"
@@ -239,8 +239,8 @@ At organisation level, `existing_allowed_values` is also required (see
 [How the rule content varies by level](#how-the-rule-content-varies-by-level)):
 
 ```hcl
-module "bobbin_org_policy_exception" {
-  source = "github.com/thoughtgears/bobbin-onboarding//terraform/org-policy-exception?ref=v0.3.0"
+module "nodrik_org_policy_exception" {
+  source = "github.com/thoughtgears/nodrik-onboarding//terraform/org-policy-exception?ref=v0.3.0"
 
   parent                  = "organizations/123456789012"
   organization_id         = "123456789012"
@@ -266,15 +266,15 @@ the usage blocks above are complete on their own.
 | `organization_id`         | `string`       | yes                                        | Your numeric organisation id (`gcloud organizations list`), needed regardless of `parent` because the tag key is always created at the organisation. Validated as numeric, and checked against `parent` when `parent` itself names an organisation. |
 | `project_id`               | `string`       | yes                                        | The one project being connected. Validated against GCP's project id shape.                                                                                                 |
 | `existing_allowed_values`  | `list(string)` | **only when `parent` is `organizations/<id>`** — otherwise must be left empty (enforced by a `lifecycle.precondition`) | Your allowlist at `parent`, exactly as it reads today. No default at organisation level — see [How this actually changes your policy](#how-this-actually-changes-your-policy). |
-| `tag_key_short_name`       | `string`       | no                                         | Default `bobbin`. Change only if that name already means something else in your tag namespace.                                                                             |
+| `tag_key_short_name`       | `string`       | no                                         | Default `nodrik`. Change only if that name already means something else in your tag namespace.                                                                             |
 | `tag_value_short_name`     | `string`       | no                                         | Default `allowed`.                                                                                                                                                          |
 
 ## Outputs
 
 | Name                        | Description                                                                                                                                                          |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tag_key_namespaced_name`   | The created tag key, e.g. `123456789012/bobbin`.                                                                                                                    |
-| `tag_value_namespaced_name` | The tag value bound to `project_id`, e.g. `123456789012/bobbin/allowed`.                                                                                            |
+| `tag_key_namespaced_name`   | The created tag key, e.g. `123456789012/nodrik`.                                                                                                                    |
+| `tag_value_namespaced_name` | The tag value bound to `project_id`, e.g. `123456789012/nodrik/allowed`.                                                                                            |
 | `policy_name`                | The policy object's full resource name, for `gcloud org-policies describe`.                                                                                         |
 | `level`                      | Which level `parent` named — `"organization"` or `"folder-or-project"` — echoed back so you can confirm `plan` targeted the level you intended before applying it. |
 
@@ -286,14 +286,14 @@ it would do before running it. The tag key and value are always created
 at the organisation, regardless of which level you set the policy at:
 
 ```bash
-gcloud resource-manager tags keys create bobbin \
+gcloud resource-manager tags keys create nodrik \
   --parent "organizations/ORGANIZATION_ID"
 
 gcloud resource-manager tags values create allowed \
-  --parent "ORGANIZATION_ID/bobbin"
+  --parent "ORGANIZATION_ID/nodrik"
 
 gcloud resource-manager tags bindings create \
-  --tag-value "ORGANIZATION_ID/bobbin/allowed" \
+  --tag-value "ORGANIZATION_ID/nodrik/allowed" \
   --parent "//cloudresourcemanager.googleapis.com/projects/PROJECT_ID"
 ```
 
@@ -306,7 +306,7 @@ spec:
   inheritFromParent: false
   rules:
     - condition:
-        expression: "resource.matchTag('ORGANIZATION_ID/bobbin', 'allowed')"
+        expression: "resource.matchTag('ORGANIZATION_ID/nodrik', 'allowed')"
       allowAll: true
     - values:
         allowedValues:
@@ -323,7 +323,7 @@ spec:
   inheritFromParent: true
   rules:
     - condition:
-        expression: "resource.matchTag('ORGANIZATION_ID/bobbin', 'allowed')"
+        expression: "resource.matchTag('ORGANIZATION_ID/nodrik', 'allowed')"
       allowAll: true
 ```
 
@@ -383,8 +383,8 @@ organisation, or an intermediate folder, already enforces — the same
 state as if this module had never run at that node.
 
 This module never touches the four viewer-role grants
-([`../`](../) does, on `terraform destroy` there) or Bobbin's own side
-of the teardown — see [`../README.md#removing-bobbin`](../README.md#removing-bobbin)
+([`../`](../) does, on `terraform destroy` there) or Nodrik's own side
+of the teardown — see [`../README.md#removing-nodrik`](../README.md#removing-nodrik)
 for what removes what.
 
 ## What we verified

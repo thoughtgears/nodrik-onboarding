@@ -1,14 +1,14 @@
 # Domain-restricted sharing: choosing a route, and applying it
 
-If granting Bobbin's four roles failed with `FAILED_PRECONDITION`, or the
+If granting Nodrik's four roles failed with `FAILED_PRECONDITION`, or the
 product itself showed a "blocked" screen naming this constraint, your
 organisation enforces
 [`constraints/iam.allowedPolicyMemberDomains`](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains)
 — usually called **domain-restricted sharing**. It refuses any IAM role
-binding to a principal outside your own Cloud Identity customer. Bobbin's
+binding to a principal outside your own Cloud Identity customer. Nodrik's
 tenant service account lives in **our** Google Cloud project, not yours
 — one dedicated account per customer, the same design that keeps one
-Bobbin customer's identity from ever reaching another's — so every one
+Nodrik customer's identity from ever reaching another's — so every one
 of the four read-only bindings is refused until you allow it.
 
 **This is a deliberate security setting, not a misconfiguration**, and
@@ -17,13 +17,13 @@ exception; the difference between them is how narrow.
 
 ## Choosing a route
 
-|                        | Route 1: tag-scoped exception                                                                      | Route 2: add Bobbin to the allowlist                                                 |
+|                        | Route 1: tag-scoped exception                                                                      | Route 2: add Nodrik to the allowlist                                                 |
 | ---------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | **Scope**              | The one project you tag. Nothing else in your organisation changes.                                  | Every project in your organisation that inherits this policy — present and future.     |
 | **What it touches**    | Four resources: a tag key, a tag value, a tag binding, and a conditional rule on the org policy.      | One value added to the org policy's allowlist. Nothing else.                          |
 | **Level**              | Organisation, folder, or project — your choice. **Project or folder recommended**: see [Choosing a level](#choosing-a-level) below. | Always the organisation. One allowlist value only makes sense as one org-wide policy. |
 | **Permission needed**  | `roles/orgpolicy.policyAdmin` (or the `orgpolicy.policy.set` permission) on **whichever level you choose** — a single project needs only project-level access, not organisation-level. | `roles/orgpolicy.policyAdmin` on the **organisation** — not optional the way it is for Route 1, because there is nowhere narrower to set a single org-wide allowlist. |
-| **New projects later** | Each one needs its own tag binding — a deliberate, visible, repeatable step.                          | Automatically covered, with no further action — which is convenient, and also means you may not notice Bobbin's access extending to a project you did not mean to include. |
+| **New projects later** | Each one needs its own tag binding — a deliberate, visible, repeatable step.                          | Automatically covered, with no further action — which is convenient, and also means you may not notice Nodrik's access extending to a project you did not mean to include. |
 | **To undo**            | Remove one tag binding. The policy rule stays defined but inert for every project that was never tagged. | Edit the org policy again and remove the customer id.                                  |
 | **Terraform module**   | [`../terraform/org-policy-exception`](../terraform/org-policy-exception) — optional, not required.   | None — a single value does not warrant a module; see the `gcloud` steps below.         |
 | **Tooling maturity**   | Newer, more moving parts, **not yet exercised against a live enforcing organisation, at any level** — see the module's [Status](../terraform/org-policy-exception/README.md#status) section. | Simpler, and the fallback if Route 1 does not work for you. |
@@ -47,7 +47,7 @@ policy, including ones nobody thought to check against a supplier
 allowlist. If your organisation already reviews org policy changes as
 security-relevant (most that enforce domain-restricted sharing do),
 Route 1 gives that review something narrow and legible to approve. If
-you connect many projects to Bobbin over time, or expect to, and your
+you connect many projects to Nodrik over time, or expect to, and your
 organisation centralises org-policy administration behind one team
 anyway, Route 2's one-time cost — or Route 1 applied at organisation
 level — may be the more honest trade; either is also the option with
@@ -62,7 +62,7 @@ narrower to live.
 
 Route 1's policy object can be set at your organisation, a folder, or a
 single project. **Default to the project you are connecting** — the
-same one you would pass to Bobbin's grant script or Terraform module
+same one you would pass to Nodrik's grant script or Terraform module
 anyway. That needs `orgpolicy.policy.set` (via
 `roles/orgpolicy.policyAdmin` or an equivalent custom role) on that one
 project only, and a mistake in the policy this writes can only reach
@@ -93,17 +93,17 @@ sections, whether or not you use the module: the `gcloud` steps under
 One service account, dedicated to your workspace, shaped like:
 
 ```text
-tenant-<your-workspace>@bobbin-shard-<n>.iam.gserviceaccount.com
+tenant-<your-workspace>@tg-shard-<n>.iam.gserviceaccount.com
 ```
 
 The exact address is shown in the console and printed by
-[`../grant-bobbin-access.sh`](../grant-bobbin-access.sh) and the
+[`../grant-nodrik-access.sh`](../grant-nodrik-access.sh) and the
 [`../terraform`](../terraform) module. It is being granted four
 **viewer** roles and nothing else — see
-[`../README.md`](../README.md#what-bobbin-gets) for the complete list.
+[`../README.md`](../README.md#what-nodrik-gets) for the complete list.
 No path here ever requests a write role.
 
-Bobbin's Cloud Identity customer id, used by **Route 2** below, is
+Nodrik's Cloud Identity customer id, used by **Route 2** below, is
 `C015nrtrj`. Route 1 does not use it anywhere: its exception lifts the
 restriction entirely for the tagged resource rather than naming a
 specific principal — see "What `allow_all = true` actually means" in
@@ -131,7 +131,7 @@ gcloud org-policies describe iam.allowedPolicyMemberDomains \
 
 Keep that output. Skipping this step, when you need it, is how a
 well-meant exception ends up narrower than intended — dropping your own
-organisation's access rather than only adding Bobbin's.
+organisation's access rather than only adding Nodrik's.
 
 ## Route 1: a tag-scoped exception (preferred, narrower)
 
@@ -146,13 +146,13 @@ steps reproduced there. In outline: tag the one project, then add a rule
 to the org policy that only relaxes the restriction on resources
 carrying that tag.
 
-## Route 2: add Bobbin to the allowlist (simpler, org-wide)
+## Route 2: add Nodrik to the allowlist (simpler, org-wide)
 
 One value, added to the allowlist you already read above. No module —
 a module around a single value would be ceremony, not help.
 
 Write `allowlist.yaml`, with your existing values from "Before either
-route" above plus Bobbin's:
+route" above plus Nodrik's:
 
 ```yaml
 name: organizations/ORGANIZATION_ID/policies/iam.allowedPolicyMemberDomains
@@ -161,7 +161,7 @@ spec:
     - values:
         allowedValues:
           - is:YOUR_EXISTING_VALUE # repeat one line per existing value
-          - is:C015nrtrj # Bobbin
+          - is:C015nrtrj # Nodrik
 ```
 
 Apply it:
@@ -188,11 +188,11 @@ the script, the doc, or the Terraform module in [`../terraform`](../terraform)
 
 Re-run whichever grant path you started with:
 [`granting-access.md`](granting-access.md),
-[`../grant-bobbin-access.sh`](../grant-bobbin-access.sh), or
+[`../grant-nodrik-access.sh`](../grant-nodrik-access.sh), or
 [`../terraform`](../terraform) — the resources and commands are
 idempotent, so it picks up exactly where it stopped. Nothing was applied
 before the exception was in place, so there is nothing to undo on
-Bobbin's side of that failed attempt.
+Nodrik's side of that failed attempt.
 
 **Give it a few minutes before you conclude the exception did not
 work.** Google's own documentation for this exact constraint states
@@ -217,7 +217,7 @@ minutes before concluding otherwise.
 
 If a project still fails after several minutes with the exception in
 place and the grant re-run, the cause is something else — send us the
-project id and organisation id at `support@getbobbin.dev`.
+project id and organisation id at `support@nodrik.dev`.
 
 ## What we verified, and what we assumed
 

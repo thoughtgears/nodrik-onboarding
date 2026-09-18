@@ -1,17 +1,17 @@
-# Granting Bobbin read-only access
+# Granting Nodrik read-only access
 
-_Bobbin receives four viewer roles — and, per service you name, one more
+_Nodrik receives four viewer roles — and, per service you name, one more
 read-only role only if you choose to give it. It can never change anything
-in your project. `./grant-bobbin-access.sh` does exactly what is written
+in your project. `./grant-nodrik-access.sh` does exactly what is written
 here, one command for one step, so you can check it against this page
 before running it._
 
 You will have received two values from us during onboarding:
 
 - `TENANT_SA` — your dedicated service account, e.g.
-  `tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com`
+  `tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com`
 - `TOPIC` — your alert intake topic, e.g.
-  `projects/bobbin-hub-N/topics/tenant-acme-prod-alerts`
+  `projects/tg-hub-N/topics/tenant-acme-prod-alerts`
 
 Prefer Terraform? [`../terraform`](../terraform) applies the same two
 steps below as a module — see its README for inputs, outputs and a
@@ -19,12 +19,12 @@ copy-paste example.
 
 ## 0. Prefer the script
 
-`./grant-bobbin-access.sh` does everything below, and
+`./grant-nodrik-access.sh` does everything below, and
 `--dry-run` prints every command it would run without changing anything.
 Read it first — that is what it is for.
 
 ```bash
-./grant-bobbin-access.sh \
+./grant-nodrik-access.sh \
   --tenant-sa "$TENANT_SA" --topic "$TOPIC" \
   --project "$PROJECT_ID" --dry-run
 ```
@@ -54,7 +54,7 @@ error.
 
 ## 1. Grant the four read-only roles
 
-On every project Bobbin should investigate:
+On every project Nodrik should investigate:
 
 ```bash
 for ROLE in roles/logging.viewer roles/monitoring.viewer \
@@ -67,7 +67,7 @@ done
 That is the complete access list. No write role is ever requested.
 
 `roles/logging.viewer` covers your Admin Activity audit log as well as your
-service logs, and Bobbin reads both — the audit log is the only place that
+service logs, and Nodrik reads both — the audit log is the only place that
 says an incident was caused by a configuration or IAM change rather than a
 deploy, so it records what changed, when, and who changed it. That is
 `logging.logEntries.list`, which the role already grants; it is not an
@@ -77,7 +77,7 @@ is never requested.
 
 `roles/run.viewer` returns the full service and revision spec, and that
 includes the **literal value of every environment variable** set on a
-revision. Bobbin reads variable names only and never persists a value —
+revision. Nodrik reads variable names only and never persists a value —
 the schema it parses the response with has no `value` field, and a test
 asserts none reaches the model or the transcript — but the permission
 allows reading them. If you keep secrets in plain environment variables
@@ -98,7 +98,7 @@ That should list all four roles from the block above, and nothing else.
 
 ## 2. Create the alert notification channel
 
-In your project, pointing at your Bobbin topic. **Check first if you are
+In your project, pointing at your Nodrik topic. **Check first if you are
 doing this by hand** — creating it twice means two notifications for
 every alert, and `channels create` will happily do that:
 
@@ -112,7 +112,7 @@ If a channel already points at your topic, skip this step. Otherwise:
 ```bash
 gcloud beta monitoring channels create \
   --project "$PROJECT_ID" \
-  --display-name "Bobbin (@bobby)" \
+  --display-name "Nodrik (@nodrik)" \
   --type pubsub \
   --channel-labels "topic=$TOPIC"
 ```
@@ -134,7 +134,7 @@ this is done.
 
 ## 4. Attach the channel to alert policies
 
-Add the "Bobbin (@bobby)" channel to any alert policy you want
+Add the "Nodrik (@nodrik)" channel to any alert policy you want
 investigated — or all of them. One incident becomes one investigation
 in one Slack thread (storms fold; no channel spam).
 
@@ -144,12 +144,12 @@ The four roles read telemetry — logs, metrics, error groups, Cloud Run
 revisions — and only telemetry. Some questions are not in the telemetry:
 a PostgreSQL instance pinned at 100 connections is either under load or
 at a `max_connections` of 100, and that flag lives in the instance's
-settings. Bobby reports what he saw and says what would confirm it; he
-does not guess.
+settings. Nodrik reports what was observed and says what would confirm
+it, rather than guessing.
 
-For each service below, **one more read-only role** lets him read the
+For each service below, **one more read-only role** lets Nodrik read the
 settings as well. It is optional — nothing stops working without it and
-Bobby never asks for it in advance — and it is **per service**: the role
+Nodrik never asks for it in advance — and it is **per service**: the role
 reads the configuration of the service the alert was about, never the
 project. Each is a **custom role defined in your project** holding
 exactly the `get`/`list` permissions the tool behind it calls, because
@@ -160,19 +160,19 @@ reads (`roles/cloudsql.viewer` can export the database,
 
 | `--family`    | Role id                        | Reads                                                                                              | Cannot                                                                                   |
 | ------------- | ------------------------------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `managed-sql` | `bobbinManagedSqlConfigViewer` | Cloud SQL instance settings and database flags                                                     | change them, read or export any data, connect, or log in                                 |
-| `cache`       | `bobbinCacheConfigViewer`      | Memorystore (Redis, Valkey, Memcached) instance settings                                           | change them, read cached data, or connect                                                |
-| `kubernetes`  | `bobbinKubernetesConfigViewer` | GKE cluster settings from the GKE API (`container.clusters.get`, `.list`)                          | change them, or read anything **inside** the cluster — no pod, workload, ConfigMap or Secret; see below |
-| `compute`     | `bobbinComputeConfigViewer`    | Compute Engine instance, managed instance group and autoscaler settings, recent zone operations    | change them, or read the serial console or screenshots. `instances.get` does return instance metadata, startup script included; Bobbin's tool discards it — see below |
-| `networking`  | `bobbinNetworkingConfigViewer` | load balancer backend health with the reason, timeouts, balancing mode, health checks, URL maps    | change them, or read instance internals                                                  |
+| `managed-sql` | `nodrikManagedSqlConfigViewer` | Cloud SQL instance settings and database flags                                                     | change them, read or export any data, connect, or log in                                 |
+| `cache`       | `nodrikCacheConfigViewer`      | Memorystore (Redis, Valkey, Memcached) instance settings                                           | change them, read cached data, or connect                                                |
+| `kubernetes`  | `nodrikKubernetesConfigViewer` | GKE cluster settings from the GKE API (`container.clusters.get`, `.list`)                          | change them, or read anything **inside** the cluster — no pod, workload, ConfigMap or Secret; see below |
+| `compute`     | `nodrikComputeConfigViewer`    | Compute Engine instance, managed instance group and autoscaler settings, recent zone operations    | change them, or read the serial console or screenshots. `instances.get` does return instance metadata, startup script included; Nodrik's tool discards it — see below |
+| `networking`  | `nodrikNetworkingConfigViewer` | load balancer backend health with the reason, timeouts, balancing mode, health checks, URL maps    | change them, or read instance internals                                                  |
 
 The exact permission list of each role is the `family_permissions` table
-in [`../grant-bobbin-access.sh`](../grant-bobbin-access.sh) and
+in [`../grant-nodrik-access.sh`](../grant-nodrik-access.sh) and
 `local.family_roles` in [`../terraform/main.tf`](../terraform/main.tf);
 they are the same list, and the product's own test suite asserts that
 list equals what its tool calls.
 
-**GKE, plainly:** Bobbin reads the GKE API and Cloud Logging and never
+**GKE, plainly:** Nodrik reads the GKE API and Cloud Logging and never
 connects to your cluster's control plane — its code has no Kubernetes
 client at all. The GKE API has no pods, Deployments, ConfigMaps or
 Secrets; those live behind your cluster's API server. Two things about
@@ -188,14 +188,14 @@ the permission itself, stated rather than left for you to find:
   `roles/container.clusterViewer` carries, is deliberately absent.
 - On a cluster that still issues a legacy client certificate,
   `clusters.get` returns that certificate and key in `masterAuth`.
-  Bobbin's tool never prints the field, but the permission returns it.
+  Nodrik's tool never prints the field, but the permission returns it.
   GKE has not issued one by default since 1.12; if yours still does,
   turn it off before granting this role.
 
 **Compute Engine, plainly:** `compute.instances.get` returns the whole
 instance resource, including `metadata.items` — where `startup-script`,
 `ssh-keys` and, in practice, secrets live. There is no narrower
-permission that returns the machine type without the metadata. Bobbin's
+permission that returns the machine type without the metadata. Nodrik's
 tool projects an allowlist of fields (machine type, status, scheduling,
 the instance group and its autoscaler, recent zone operations); metadata
 never reaches the model or the transcript, and a test asserts that. The
@@ -209,7 +209,7 @@ above; with it, after the four roles, it defines the role (or updates an
 older definition to this list) and binds it:
 
 ```bash
-./grant-bobbin-access.sh \
+./grant-nodrik-access.sh \
   --tenant-sa "$TENANT_SA" --topic "$TOPIC" \
   --project "$PROJECT_ID" --family managed-sql --dry-run
 ```
@@ -217,18 +217,18 @@ older definition to this list) and binds it:
 ### By hand
 
 ```bash
-gcloud iam roles create bobbinManagedSqlConfigViewer --project "$PROJECT_ID" \
-  --title "Bobbin Cloud SQL configuration viewer" --stage GA \
+gcloud iam roles create nodrikManagedSqlConfigViewer --project "$PROJECT_ID" \
+  --title "Nodrik Cloud SQL configuration viewer" --stage GA \
   --permissions cloudsql.instances.get,cloudsql.instances.list
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member "serviceAccount:$TENANT_SA" \
-  --role "projects/$PROJECT_ID/roles/bobbinManagedSqlConfigViewer" --condition=None
+  --role "projects/$PROJECT_ID/roles/nodrikManagedSqlConfigViewer" --condition=None
 ```
 
 **Success looks like:** `roles create` prints the role with its
 `includedPermissions`, and the binding command prints the policy with a
 line for `serviceAccount:$TENANT_SA` under
-`projects/$PROJECT_ID/roles/bobbinManagedSqlConfigViewer`.
+`projects/$PROJECT_ID/roles/nodrikManagedSqlConfigViewer`.
 
 **The gotcha:** defining a custom role needs `iam.roles.create` on the
 project, which `roles/resourcemanager.projectIamAdmin` does **not**
@@ -248,7 +248,7 @@ nothing else.
 ## Removing access
 
 ```bash
-./revoke-bobbin-access.sh \
+./revoke-nodrik-access.sh \
   --tenant-sa "<the service account>" \
   --project "<your project id>" \
   --dry-run
@@ -267,7 +267,7 @@ have.
 teardown — the service account that could read your projects, your stored
 credentials, your investigation history — runs on our schedule and does
 not wait for you. This script removes the permissions you granted; ours
-removes the identity they were granted to. Either alone stops Bobbin
+removes the identity they were granted to. Either alone stops Nodrik
 reading anything.
 
 One thing worth knowing if you run it after we have already torn down our
@@ -278,4 +278,4 @@ there, so it works either way round.
 
 Used the Terraform module instead of the script? `terraform destroy` is
 the exact reverse — see
-[`../terraform/README.md`](../terraform/README.md#removing-bobbin).
+[`../terraform/README.md`](../terraform/README.md#removing-nodrik).

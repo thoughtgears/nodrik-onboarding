@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Removes Bobbin's access to your GCP project(s).
+# Removes Nodrik's access to your GCP project(s).
 #
 # THIS SCRIPT IS MEANT TO BE READ BEFORE IT IS RUN, for the same reason
-# grant-bobbin-access.sh is: it calls nothing but `gcloud`, there is no
-# network access to Bobbin, no telemetry, and no binary. Everything it
+# grant-nodrik-access.sh is: it calls nothing but `gcloud`, there is no
+# network access to Nodrik, no telemetry, and no binary. Everything it
 # does, you could type.
 #
 # It is the exact reverse of the grant:
@@ -13,9 +13,9 @@
 #   roles/monitoring.viewer      removed
 #   roles/errorreporting.viewer  removed
 #   roles/run.viewer             removed
-#   any optional family role (bobbin*ConfigViewer) — its binding removed
+#   any optional family role (nodrik*ConfigViewer) — its binding removed
 #     AND its definition deleted, so no artefact of ours is left
-#   the "Bobbin (@bobby)" Pub/Sub notification channel  deleted
+#   the "Nodrik (@nodrik)" Pub/Sub notification channel  deleted
 #
 # The family roles are removed UNCONDITIONALLY — there is no --family
 # here — because revocation should not require you to remember what you
@@ -26,7 +26,7 @@
 # it — Cloud Monitoring refuses to delete a referenced channel, so the
 # alternative is leaving behind the one thing this script exists to
 # remove. The policies themselves survive untouched and keep firing; they
-# simply lose one notification target, which is what removing Bobbin
+# simply lose one notification target, which is what removing Nodrik
 # means.
 #
 # Nothing else of ours exists in your project, so when this finishes there
@@ -37,7 +37,7 @@
 # stored credentials, your investigation history — happens on our
 # schedule, not yours, and does not wait for you. This script removes the
 # permissions you granted; ours removes the identity they were granted to.
-# Either alone is sufficient to stop Bobbin reading anything.
+# Either alone is sufficient to stop Nodrik reading anything.
 #
 # Run with --dry-run first. It prints every command and changes nothing.
 
@@ -50,12 +50,12 @@ readonly ROLES=(
   roles/run.viewer
 )
 
-# The optional family roles grant-bobbin-access.sh can define. Kept in
+# The optional family roles grant-nodrik-access.sh can define. Kept in
 # step with that script's family_role_id, and with FAMILY_GRANTS in the
 # product repo. Every one is deleted here if it exists.
-# Product identity — see the same pair in grant-bobbin-access.sh. A
+# Product identity — see the same pair in grant-nodrik-access.sh. A
 # rename changes this one line; the ids below follow.
-readonly PRODUCT_SLUG="bobbin"
+readonly PRODUCT_SLUG="nodrik"
 
 readonly FAMILY_ROLE_IDS=(
   "${PRODUCT_SLUG}ManagedSqlConfigViewer"
@@ -111,13 +111,13 @@ run() {
 usage() {
   cat <<'USAGE'
 Usage:
-  revoke-bobbin-access.sh --tenant-sa <SA_EMAIL>
+  revoke-nodrik-access.sh --tenant-sa <SA_EMAIL>
                           --project <PROJECT_ID> [--project <PROJECT_ID> ...]
                           [--topic <TOPIC>] [--dry-run] [--yes]
 
   --tenant-sa   The service account you granted access to, e.g.
-                tenant-acme@bobbin-shard-N.iam.gserviceaccount.com
-  --project     A project to remove Bobbin from. Repeat for several.
+                tenant-acme@tg-shard-N.iam.gserviceaccount.com
+  --project     A project to remove Nodrik from. Repeat for several.
   --topic       Your alert topic. Optional: without it the notification
                 channel is matched by display name instead, which is
                 weaker — see the comment at the channel step.
@@ -155,11 +155,11 @@ note ""
 note "On each project, remove that service account from these four roles:"
 for role in "${ROLES[@]}"; do note "  $role"; done
 note ""
-note "…remove and delete any optional family role Bobbin defined:"
+note "…remove and delete any optional family role Nodrik defined:"
 for role_id in "${FAMILY_ROLE_IDS[@]}"; do note "  $role_id"; done
 note ""
-note "…and delete the Bobbin notification channel."
-note "Your alert policies are kept — they only lose Bobbin as a target."
+note "…and delete the Nodrik notification channel."
+note "Your alert policies are kept — they only lose Nodrik as a target."
 
 if [[ "$DRY_RUN" == true ]]; then
   note ""
@@ -214,14 +214,14 @@ for project in "${PROJECTS[@]}"; do
           --member "$member" --role "projects/$project/roles/$role_id" --condition=None 2>/dev/null || true
       done
     done
-    note "removed Bobbin from ${#ROLES[@]} roles and any family role"
+    note "removed Nodrik from ${#ROLES[@]} roles and any family role"
   fi
 
-  # The role DEFINITIONS, after the bindings. A custom role Bobbin
+  # The role DEFINITIONS, after the bindings. A custom role Nodrik
   # defined is the one artefact of ours a grant leaves behind, and
   # "nothing else of ours exists in your project" is only true once it
   # is gone. Google keeps a deleted role recoverable for seven days —
-  # that is theirs, not ours, and grant-bobbin-access.sh undeletes it
+  # that is theirs, not ours, and grant-nodrik-access.sh undeletes it
   # rather than failing if you come back inside the window.
   for role_id in "${FAMILY_ROLE_IDS[@]}"; do
     if gcloud iam roles describe "$role_id" --project "$project" --format='value(name)' >/dev/null 2>&1; then
@@ -243,7 +243,7 @@ for project in "${PROJECTS[@]}"; do
     [[ -z "$channel_name" ]] && continue
     if [[ -n "$TOPIC" ]]; then
       [[ "$channel_topic" == "$TOPIC" ]] && { found="$channel_name"; break; }
-    elif [[ "$channel_display" == "Bobbin (@bobby)" ]]; then
+    elif [[ "$channel_display" == "Nodrik (@nodrik)" ]]; then
       found="$channel_name"
       break
     fi
@@ -252,7 +252,7 @@ for project in "${PROJECTS[@]}"; do
     --format='value(name,labels.topic,displayName)' 2>/dev/null || true)
 
   if [[ -z "$found" ]]; then
-    note "no Bobbin notification channel found — nothing to delete"
+    note "no Nodrik notification channel found — nothing to delete"
   else
     # --force, and the reason is a contradiction found by running this:
     # a channel cannot be deleted while an alert policy still references
@@ -262,7 +262,7 @@ for project in "${PROJECTS[@]}"; do
     #
     # --force deletes it AND unlinks it from those policies. The policies
     # survive — they keep firing, they simply lose one notification
-    # target, which is precisely what removing Bobbin means. That is a
+    # target, which is precisely what removing Nodrik means. That is a
     # smaller edit than leaving our channel wired into their monitoring
     # for ever.
     run gcloud beta monitoring channels delete "$found" --project "$project" --force
@@ -280,7 +280,7 @@ done
 step "Done"
 cat <<'EOF'
 
-  Bobbin can no longer read anything in these projects.
+  Nodrik can no longer read anything in these projects.
 
   If any alert policy still lists the deleted channel, Cloud Monitoring
   will show it as a missing notification target. Editing that is optional

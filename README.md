@@ -1,14 +1,14 @@
-# Connecting Bobbin
+# Connecting Nodrik
 
-Everything you need to connect [Bobbin](https://getbobbin.dev) to your
+Everything you need to connect [Nodrik](https://nodrik.dev) to your
 GCP project and your Slack workspace.
 
-**This repository exists to be read.** Bobbin asks for read access to your
+**This repository exists to be read.** Nodrik asks for read access to your
 production infrastructure, so the honest way to ask is to show you exactly
 what is being requested, in code you can check, before you run anything.
 There is no installer, no binary, and no step that phones home.
 
-## What Bobbin gets
+## What Nodrik gets
 
 Four Google-managed **read-only** roles, on the projects you choose:
 
@@ -19,14 +19,14 @@ Four Google-managed **read-only** roles, on the projects you choose:
 | `roles/errorreporting.viewer` | Error groups |
 | `roles/run.viewer` | Cloud Run service and revision configuration, environment-variable values included |
 
-That is the complete list for reading telemetry. Bobbin cannot change
+That is the complete list for reading telemetry. Nodrik cannot change
 anything in your project, and asks for no role that would let it. It
 reads at the moment an alert fires and keeps no copy of your telemetry.
 
-Optionally, per service you name, **one more read-only role** lets Bobbin
+Optionally, per service you name, **one more read-only role** lets Nodrik
 read that service's settings as well — a custom role holding exactly the
 `get`/`list` permissions its tool calls, deleted again by the revoke
-script. For GKE that is the GKE API, and Bobbin never connects to your
+script. For GKE that is the GKE API, and Nodrik never connects to your
 cluster — though read what the permission itself allows, in
 [Optional: a configuration role per service](docs/granting-access.md#optional-a-configuration-role-per-service),
 before granting it.
@@ -34,16 +34,16 @@ before granting it.
 The audit-log half of `logging.viewer` is worth calling out rather than
 leaving you to infer it from the role name. When an incident was caused by
 a configuration or IAM change rather than a deploy, the only place that
-says so is your Admin Activity audit log, so Bobbin reads it: what changed,
+says so is your Admin Activity audit log, so Nodrik reads it: what changed,
 when, and the email address of whoever changed it. It is the same
 `logging.logEntries.list` the role already grants — no extra permission —
 but it is a different sentence, and you should have it before you run
 anything. Data Access audit logs are a separate permission
-(`logging.privateLogEntries.list`) and Bobbin is never granted it.
+(`logging.privateLogEntries.list`) and Nodrik is never granted it.
 
 The same kind of sentence, about `run.viewer`: it returns the full service
 and revision spec, and that includes the **literal value of every
-environment variable** set on a revision. Bobbin reads variable names
+environment variable** set on a revision. Nodrik reads variable names
 only and never persists a value — the schema it parses the response with
 has no `value` field, and a test asserts none reaches the model or the
 transcript — but the permission allows reading them. If you keep secrets
@@ -52,14 +52,14 @@ know that before you run anything.
 
 ## The two halves
 
-Connecting Bobbin has a GCP half and a Slack half. They are independent —
+Connecting Nodrik has a GCP half and a Slack half. They are independent —
 do them in either order.
 
 1. **[Granting access](docs/granting-access.md)** — the four roles above
    and a notification channel. Three ways to apply them, all doing
    exactly the same thing (ADR-0003 in the product repo):
    - the doc itself — numbered `gcloud` steps, run by hand
-   - `./grant-bobbin-access.sh` — the same steps wrapped in a readable,
+   - `./grant-nodrik-access.sh` — the same steps wrapped in a readable,
      auditable script; the default on a live onboarding call
    - **[`terraform/`](terraform/)** — a plain-HCL module, for IaC-native
      shops that would rather `plan` and `apply` than run bash
@@ -80,7 +80,7 @@ known-good fallback if Route 1 does not work for you.
 ## Start here
 
 ```bash
-./grant-bobbin-access.sh \
+./grant-nodrik-access.sh \
   --tenant-sa "<the service account we gave you>" \
   --topic "<the topic we gave you>" \
   --project "<your project id>" \
@@ -97,17 +97,17 @@ rights on your topic.
 Prefer Terraform? Skip to [`terraform/`](terraform/) — same grants, same
 roles, no `gcloud` required.
 
-## Removing Bobbin
+## Removing Nodrik
 
 ```bash
-./revoke-bobbin-access.sh --tenant-sa "<…>" --project "<…>" --dry-run
+./revoke-nodrik-access.sh --tenant-sa "<…>" --project "<…>" --dry-run
 ```
 
 The exact reverse of the grant, and readable the same way — including
 deleting any optional family role it finds, whether or not you name one.
 Details in [granting access](docs/granting-access.md). Used the Terraform module
 instead? `terraform destroy` is the exact reverse there — see
-[`terraform/README.md`](terraform/README.md#removing-bobbin). Either way,
+[`terraform/README.md`](terraform/README.md#removing-nodrik). Either way,
 nothing else of ours exists in your project.
 
 Your data is deleted whether or not you run it — our side of the teardown

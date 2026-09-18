@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Grants Bobbin read-only access to your GCP project(s).
+# Grants Nodrik read-only access to your GCP project(s).
 #
 # THIS SCRIPT IS MEANT TO BE READ BEFORE IT IS RUN. It wraps the steps in
 # docs/granting-access.md one-for-one and calls nothing but `gcloud`.
-# There is no network access to Bobbin, no telemetry, no install step,
+# There is no network access to Nodrik, no telemetry, no install step,
 # and no binary. Everything it does, you could type.
 #
 # What it grants, in full:
@@ -15,11 +15,11 @@
 #   roles/errorreporting.viewer  read error groups
 #   roles/run.viewer             read Cloud Run service and revision config
 #                                (the response carries environment-variable
-#                                VALUES; Bobbin keeps the names and discards
+#                                VALUES; Nodrik keeps the names and discards
 #                                the values, but the permission allows
 #                                reading them)
 #
-# All four are read-only Google-managed roles. Bobbin cannot change
+# All four are read-only Google-managed roles. Nodrik cannot change
 # anything in your project, and asks for no role that would let it.
 #
 # Optionally, per service you name with --family, one more read-only
@@ -28,17 +28,17 @@
 # nothing else (the product's own test suite asserts that). Google's
 # predefined viewers for these services carry verbs that are not reads
 # (cloudsql.viewer can export the database, compute.viewer can read a
-# VM's serial console), which is why Bobbin defines its own:
+# VM's serial console), which is why Nodrik defines its own:
 #
-#   --family managed-sql   bobbinManagedSqlConfigViewer
+#   --family managed-sql   nodrikManagedSqlConfigViewer
 #                          reads Cloud SQL instance settings and database
 #                          flags; cannot change them, read or export data,
 #                          connect, or log in
-#   --family cache         bobbinCacheConfigViewer
+#   --family cache         nodrikCacheConfigViewer
 #                          reads Memorystore (Redis, Valkey, Memcached)
 #                          instance settings; cannot change them, read
 #                          cached data, or connect
-#   --family kubernetes    bobbinKubernetesConfigViewer
+#   --family kubernetes    nodrikKubernetesConfigViewer
 #                          reads GKE cluster settings from the GKE API —
 #                          container.clusters.get and .list, and no
 #                          permission on anything INSIDE the cluster: no
@@ -48,18 +48,18 @@
 #                          uses, so the identity could generate a
 #                          kubeconfig (and then be authorised for nothing);
 #                          and on a cluster still issuing a legacy client
-#                          certificate, clusters.get returns it. Bobbin's
+#                          certificate, clusters.get returns it. Nodrik's
 #                          code has no Kubernetes client and never
 #                          connects to your kube-apiserver.
-#   --family compute       bobbinComputeConfigViewer
+#   --family compute       nodrikComputeConfigViewer
 #                          reads Compute Engine instance, managed instance
 #                          group and autoscaler settings; cannot read the
 #                          serial console or screenshots. instances.get
 #                          DOES return instance metadata, startup script
-#                          included — the permission allows it; Bobbin's
+#                          included — the permission allows it; Nodrik's
 #                          tool discards it (an allowlist of fields, with
 #                          a test asserting metadata is never printed)
-#   --family networking    bobbinNetworkingConfigViewer
+#   --family networking    nodrikNetworkingConfigViewer
 #                          reads load balancer backend health and
 #                          configuration; cannot read instance internals
 #
@@ -68,7 +68,7 @@
 # binds it. Defining a role needs iam.roles.create on the project, which
 # roles/resourcemanager.projectIamAdmin does NOT carry (roles/iam.roleAdmin
 # does) — if that step is refused, the person who can bind is not the
-# person who can define, and the script says so. revoke-bobbin-access.sh
+# person who can define, and the script says so. revoke-nodrik-access.sh
 # deletes these roles again, whether or not you pass --family.
 #
 # Run with --dry-run first. It prints every command and changes nothing.
@@ -92,12 +92,12 @@ readonly ROLES=(
 # Product identity. The role ids and titles below are rendered from
 # these two, so a rename is a change here and nowhere else in this file.
 # They must stay in step with product_slug / product_name in
-# terraform/variables.tf, FAMILY_ROLE_IDS in revoke-bobbin-access.sh, and
+# terraform/variables.tf, FAMILY_ROLE_IDS in revoke-nodrik-access.sh, and
 # PRODUCT_SLUG / PRODUCT_NAME in the product repo's grants.ts — the
 # verifier matches on the role id, so a slug that differs from the
 # product's makes a grant apply and then fail verification.
-readonly PRODUCT_SLUG="bobbin"
-readonly PRODUCT_NAME="Bobbin"
+readonly PRODUCT_SLUG="nodrik"
+readonly PRODUCT_NAME="Nodrik"
 
 readonly FAMILY_NAMES=(managed-sql cache kubernetes compute networking)
 family_role_id() {
@@ -129,7 +129,7 @@ family_permissions() {
   esac
 }
 
-readonly CHANNEL_NAME="Bobbin (@bobby)"
+readonly CHANNEL_NAME="Nodrik (@nodrik)"
 readonly DOMAIN_POLICY_DOCS="https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains"
 
 TENANT_SA=""
@@ -158,7 +158,7 @@ gcloud() { command gcloud "$@" --quiet </dev/null; }
 
 # Quote an argument the way you would have to type it, so everything
 # printed below is copy-pasteable. Without this, an argument containing
-# spaces prints as `--display-name Bobbin (@bobby)`, which is a syntax
+# spaces prints as `--display-name Nodrik (@nodrik)`, which is a syntax
 # error if you paste it.
 shell_quote() {
   local arg out=""
@@ -188,22 +188,22 @@ run() {
 usage() {
   cat <<'USAGE'
 Usage:
-  grant-bobbin-access.sh --tenant-sa <SA_EMAIL> --topic <TOPIC> \
+  grant-nodrik-access.sh --tenant-sa <SA_EMAIL> --topic <TOPIC> \
                          --project <PROJECT_ID> [--project <PROJECT_ID> ...]
                          [--family <NAME> ...] [--dry-run] [--yes]
 
   --tenant-sa   The service account we gave you, e.g.
-                tenant-acme@bobbin-shard-N.iam.gserviceaccount.com
+                tenant-acme@tg-shard-N.iam.gserviceaccount.com
   --topic       Your alert intake topic, e.g.
-                projects/bobbin-hub-N/topics/tenant-acme-alerts
-  --project     A project Bobbin should investigate. Repeat for several.
+                projects/tg-hub-N/topics/tenant-acme-alerts
+  --project     A project Nodrik should investigate. Repeat for several.
   --family      Optional. One more read-only role for one service's
                 settings: managed-sql, cache, kubernetes, compute or
                 networking. Repeat for several. See the header.
   --dry-run     Print every command without running it. Do this first.
   --yes         Skip the confirmation prompt (for reruns).
 
-Both values come from Bobbin during onboarding. If you do not have them,
+Both values come from Nodrik during onboarding. If you do not have them,
 stop — this script cannot be used without them.
 USAGE
 }
@@ -226,7 +226,7 @@ explain_domain_policy() {
   This is almost certainly iam.allowedPolicyMemberDomains — domain-restricted
   sharing, which blocks IAM grants to service accounts outside your org. It
   is a deliberate setting, not a mistake, and it needs an exception for
-  Bobbin's organization before onboarding can continue. Ask us for the org id.
+  Nodrik's organization before onboarding can continue. Ask us for the org id.
 
     $DOMAIN_POLICY_DOCS
 
@@ -298,7 +298,7 @@ elif [[ "$ASSUME_YES" != true ]]; then
   [[ "$reply" == [yY]* ]] || die "aborted"
 fi
 
-# Collected for the final handshake. Alerts cannot flow until Bobbin grants
+# Collected for the final handshake. Alerts cannot flow until Nodrik grants
 # your project's monitoring agent publish rights on the topic, and it needs
 # these numbers to do it.
 PROJECT_NUMBERS=()
@@ -334,8 +334,8 @@ for project in "${PROJECTS[@]}"; do
   # The optional family roles, after the four. Each is a CUSTOM role, so
   # it has to exist before it can be bound: `roles describe` says
   # whether it does, `roles create` defines it, and `roles update`
-  # brings an older definition up to this list — Bobbin's definition is
-  # authoritative for Bobbin's role, and re-running with the same list
+  # brings an older definition up to this list — Nodrik's definition is
+  # authoritative for Nodrik's role, and re-running with the same list
   # is a no-op. A deleted role's id is reserved for seven days;
   # `roles undelete` brings it back rather than failing on the id.
   #
@@ -360,7 +360,7 @@ for project in "${PROJECTS[@]}"; do
     else
       if ! run gcloud iam roles create "$role_id" --project "$project" \
         --title "$(family_role_title "$family")" \
-        --description "Read-only: what Bobbin's $family configuration tool calls, and nothing else. revoke-bobbin-access.sh deletes it." \
+        --description "Read-only: what Nodrik's $family configuration tool calls, and nothing else. revoke-nodrik-access.sh deletes it." \
         --permissions "$permissions" --stage GA 2>"$errfile"; then
         printf '\n%s\n' "$(cat "$errfile")" >&2
         explain_role_admin >&2
@@ -415,7 +415,7 @@ done
 step "Done — one thing left, and it is on our side"
 cat <<EOF
 
-  Alerts cannot reach Bobbin until we grant your project's monitoring
+  Alerts cannot reach Nodrik until we grant your project's monitoring
   agent permission to publish to the topic. Send us these numbers:
 
 EOF
@@ -427,7 +427,7 @@ cat <<EOF
   becomes one investigation in one Slack thread; storms fold together
   rather than spamming the channel.
 
-  To remove Bobbin entirely: run revoke-bobbin-access.sh, which reverses
+  To remove Nodrik entirely: run revoke-nodrik-access.sh, which reverses
   the four role bindings, removes any optional family role and deletes
   its definition, and deletes the notification channel. Nothing else
   exists on your side.

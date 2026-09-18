@@ -5,7 +5,7 @@ project, one tenant service account, one topic.
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
-# edit terraform.tfvars with the values Bobbin gave you
+# edit terraform.tfvars with the values Nodrik gave you
 terraform init
 terraform plan
 ```

@@ -1,3 +1,3 @@
 project_id              = "my-production-project"
-tenant_service_account  = "tenant-acme-prod@bobbin-shard-N.iam.gserviceaccount.com"
-tenant_topic            = "projects/bobbin-hub-N/topics/tenant-acme-prod-alerts"
+tenant_service_account  = "tenant-acme-prod@tg-shard-N.iam.gserviceaccount.com"
+tenant_topic            = "projects/tg-hub-N/topics/tenant-acme-prod-alerts"
