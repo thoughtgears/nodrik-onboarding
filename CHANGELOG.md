@@ -19,7 +19,7 @@ A commit SHA works as a `ref` too, and is immutable in exactly the way
 the advice cares about. See
 [`terraform/README.md`](terraform/README.md#usage).
 
-## Unreleased
+## v0.4.0 — 2026-09-22
 
 ### Added
 
@@ -86,8 +86,21 @@ nothing naming the cause. They move together or not at all.
   `PRODUCT_SLUG`/`product_slug` names. Run `revoke-nodrik-access.sh` (or
   the equivalent `terraform destroy` against the version you applied) to
   remove them, or delete them by hand with `gcloud iam roles delete`.
-  The four Google-managed viewer roles and the notification channel
-  binding are unaffected — nothing there is keyed on the product's name.
+  The four Google-managed viewer roles are unaffected — `roles/viewer`
+  and its three siblings are Google's, and nothing about them is keyed on
+  the product's name.
+
+  **The notification channel is not in that category.** Its display name
+  renders from `agent_name` too, so it goes from `Bobbin (@bobby)` to
+  `Nodrik (@nodrik)` — and Nodrik's grant check matches that string
+  **exactly**, on the reasoning that a channel somebody renamed is one it
+  cannot claim to recognise. So a project still carrying the old channel
+  reads as "channel missing" in the console however many roles are bound,
+  and no alert routed to it can be delivered. Re-running either path
+  fixes it; the old channel, like the old roles, is left behind for you
+  to delete. The `pubsub.publisher` binding Nodrik makes on its own topic
+  is the part that is genuinely unaffected — it names your project's
+  Cloud Monitoring service agent, not the product.
 
 - **The scripts were renamed**: `grant-bobbin-access.sh` is now
   `grant-nodrik-access.sh`, and `revoke-bobbin-access.sh` is now
